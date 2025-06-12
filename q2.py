@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import json
 import random
 import re
-import time # timeモジュールを追加
+import time
 
 app = Flask(__name__)
 # 本番環境では、より複雑で推測されにくいシークレットキーを使用してください
@@ -168,7 +168,7 @@ def quiz():
     # すべての問題が終了した場合
     if current_index >= len(question_ids):
         session['quiz_status'] = 'finished'
-        session['quiz_message'] = "すべての問題が終了しました！"
+        session['quiz_message'] = "すべての問題が終了しました！" # ここはログ画面での表示用
         return redirect(url_for('log'))
     
     # 現在の問題データを取得
@@ -179,35 +179,21 @@ def quiz():
         session['quiz_message'] = "問題データが見つかりませんでした。次の問題に進みます。"
         session['current_question_index'] += 1
         session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
-        return redirect(url_for('quiz')) # 次の問題へリダイレクト
+        session['quiz_message_shown'] = True # このフラグは次のquiz()でpopされる
+        return redirect(url_for('quiz')) # 問題が見つからない場合は次の問題へリダイレクト
 
-    # 時間切れチェック（クライアントサイドでJavaScriptが行うが、サーバー側でも念のため）
-    # 直前のリクエストが回答送信（POST）ではなく、かつ前回問題が表示されてから15秒以上経過している場合
-    # ※ `quiz_message` は、直前の回答結果メッセージを保持するために使用
-    if request.method == 'GET' and not session.get('quiz_message_shown') and (int(time.time()) - session.get('last_question_time', 0)) > 15:
-        session['answered_questions_log'].append({
-            "id": question_data.get('id', 'IDなし'),
-            "question": question_data['question'],
-            "user_answer": "(未入力/時間切れ)",
-            "correct_answer": question_data['answer'].strip(),
-            "result": "時間切れ (不正解)"
-        })
-        session['current_question_index'] += 1
-        session['quiz_message'] = f"時間切れ。正解は '{question_data['answer'].strip()}' です。"
-        session['quiz_message_shown'] = True # メッセージを表示したことを示すフラグ
-        session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
-        return redirect(url_for('quiz')) # メッセージ表示のためにリダイレクト
+    # ここにあったサーバーサイドの時間切れ判定によるリダイレクトを削除しました。
+    # 時間切れの処理はJavaScriptのsubmitTimeoutAnswer()に任せます。
 
-    # テンプレートに渡すメッセージを pop() で取得し、一度表示したらセッションから削除
-    # これにより、次の問題がロードされたときにメッセージが残らないようにする
+    # メッセージは一度表示したらセッションから削除
     message_to_display = session.pop('quiz_message', None)
-    session.pop('quiz_message_shown', None) # メッセージ表示フラグも削除
+    session.pop('quiz_message_shown', None) # フラグも削除
 
     return render_template('quiz.html', 
                            question=question_data, 
                            current_index=current_index + 1, 
                            total_questions=len(question_ids),
-                           message=message_to_display) # メッセージを渡す
+                           message=message_to_display)
 
 @app.route('/check_answer', methods=['POST'])
 def check_answer():
@@ -237,7 +223,11 @@ def check_answer():
     correct_answer = question_data["answer"].strip()
     
     result_message = ""
-    if user_answer == correct_answer:
+    # user_answerが空の場合、時間切れと判断してログに記録
+    if user_answer == "": # 時間切れの場合のログをより正確に
+        result_message = f"時間切れ。正解は '{correct_answer}' です。"
+        log_result = "時間切れ (不正解)"
+    elif user_answer == correct_answer:
         result_message = "正解！"
         log_result = "正解"
     else:
@@ -247,7 +237,7 @@ def check_answer():
     session['answered_questions_log'].append({
         "id": question_data.get('id', 'IDなし'),
         "question": question_data['question'],
-        "user_answer": user_answer,
+        "user_answer": user_answer if user_answer != "" else "(未入力/時間切れ)", # ログ表示を修正
         "correct_answer": correct_answer,
         "result": log_result
     })
