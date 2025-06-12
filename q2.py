@@ -36,26 +36,36 @@ def load_all_questions(filename="words.json"):
         return [], {}
 
 def get_selected_question_ids(all_questions_list, range_input):
-    """入力されたID範囲に基づいて問題のIDを選択する"""
+    """入力されたID範囲に基づいて問題のIDを選択する。
+       範囲指定形式でない場合は、ID、質問文、解答文の部分一致検索を試みる。
+    """
     selected_question_ids = []
-    if not range_input: # 何も入力されていない場合は全範囲
+    
+    # 入力が空の場合は全範囲
+    if not range_input:
         return [q.get('id') for q in all_questions_list if q.get('id')]
 
-    try:
-        ranges = [r.strip().upper() for r in range_input.split(',')]
-        all_q_ids_set = {q.get('id') for q in all_questions_list if q.get('id')}
+    # 入力文字列をカンマで分割し、それぞれを検索条件として処理
+    # 大文字に変換して統一性を保つ (部分一致検索では re.IGNORECASE を使うので大文字化は不要だが、整合性のために残す)
+    search_terms = [term.strip().upper() for term in range_input.split(',') if term.strip()]
+    
+    # 既存の全問題IDのセット
+    all_q_ids_set = {q.get('id') for q in all_questions_list if q.get('id')}
 
-        for r_str in ranges:
-            match = re.match(r'^([A-Z]+)_(\d+)(?:-([A-Z]+)_(\d+))?$', r_str)
-            if not match:
-                raise ValueError(f"範囲指定の形式が不正です: '{r_str}' (例: A1_001-A1_005)")
-            
+    # 最終的に選択された問題のIDを格納するセット（重複排除のため）
+    found_ids_set = set()
+
+    for term_str in search_terms:
+        # 1. 従来のID範囲指定形式 (A1_001-A1_005, A1_001) を優先してチェック
+        match = re.match(r'^([A-Z]+)_(\d+)(?:-([A-Z]+)_(\d+))?$', term_str)
+        
+        if match: # 従来の範囲指定形式に合致する場合
             start_prefix, start_num_str, end_prefix, end_num_str = match.groups()
             
             if end_prefix is None and end_num_str is None: # 単一ID指定 (例: A1_001)
                 target_id_formatted = f"{start_prefix}_{int(start_num_str):03d}"
-                if target_id_formatted in all_q_ids_set and target_id_formatted not in selected_question_ids:
-                    selected_question_ids.append(target_id_formatted)
+                if target_id_formatted in all_q_ids_set:
+                    found_ids_set.add(target_id_formatted)
             else: # 範囲指定 (例: A1_001-A1_005)
                 start_num = int(start_num_str)
                 end_num = int(end_num_str)
@@ -64,9 +74,9 @@ def get_selected_question_ids(all_questions_list, range_input):
                 end_prefix_val = prefix_to_int(end_prefix)
 
                 if start_prefix_val > end_prefix_val:
-                    raise ValueError(f"範囲指定の開始接頭辞が終了接頭辞より大きいです: '{r_str}'")
+                    raise ValueError(f"範囲指定の開始接頭辞が終了接頭辞より大きいです: '{term_str}'")
                 if start_prefix_val == end_prefix_val and start_num > end_num:
-                    raise ValueError(f"範囲指定の開始番号が終了番号より大きいです: '{r_str}'")
+                    raise ValueError(f"範囲指定の開始番号が終了番号より大きいです: '{term_str}'")
 
                 for q_item in all_questions_list:
                     q_id = q_item.get("id")
@@ -85,20 +95,45 @@ def get_selected_question_ids(all_questions_list, range_input):
                         if q_prefix == start_prefix and start_num <= q_num <= end_num:
                             is_in_range = True
                     elif start_prefix_val < end_prefix_val:
-                        if q_prefix_val > start_prefix_val and q_prefix_val < end_prefix_val:
-                            is_in_range = True
-                        elif q_prefix == start_prefix and q_num >= start_num:
-                            is_in_range = True
-                        elif q_prefix == end_prefix and q_num <= end_num:
+                        if (q_prefix_val > start_prefix_val and q_prefix_val < end_prefix_val) or \
+                           (q_prefix == start_prefix and q_num >= start_num) or \
+                           (q_prefix == end_prefix and q_num <= end_num):
                             is_in_range = True
                     
-                    if is_in_range and q_id not in selected_question_ids:
-                        selected_question_ids.append(q_id)
-        return selected_question_ids
-    except ValueError as ve:
-        raise ve
-    except Exception as e:
-        raise Exception(f"問題選択中に予期せぬエラーが発生しました: {e}")
+                    if is_in_range:
+                        found_ids_set.add(q_id)
+        
+        else: # 2. 従来の形式に合致しない場合、ID、質問、解答での部分一致検索を試みる
+            # 入力された文字列を正規表現パターンとして使用
+            # re.escape() で特殊文字をエスケープし、部分一致検索を安全にする
+            # re.IGNORECASE を追加することで、大文字小文字を区別しない検索が可能になります
+            # 大文字化は re.IGNORECASE のため不要だが、term_str自体は元々大文字化されている
+            search_pattern = re.compile(re.escape(term_str), re.IGNORECASE) 
+            
+            for q_item in all_questions_list:
+                q_id = q_item.get("id")
+                question_text = q_item.get("question", "")
+                answer_text = q_item.get("answer", "")
+
+                # IDに部分一致
+                if q_id and search_pattern.search(q_id):
+                    found_ids_set.add(q_id)
+                # 質問文に部分一致
+                elif question_text and search_pattern.search(question_text):
+                    found_ids_set.add(q_id)
+                # 解答に部分一致
+                elif answer_text and search_pattern.search(answer_text):
+                    found_ids_set.add(q_id)
+
+    # 最終的に選択されたIDが一つもなければエラー
+    if not found_ids_set:
+        raise ValueError(f"指定された検索条件 '{range_input}' に合致する問題が見つかりませんでした。")
+        
+    # セットからリストに変換し、ID順にソートして返す
+    selected_question_ids = list(found_ids_set)
+    selected_question_ids.sort() # ID順にソートしておくと、毎回同じ順序になりデバッグしやすい
+
+    return selected_question_ids
 
 # 全問題データをロード（アプリ起動時に一度だけ）
 ALL_QUESTIONS_LIST, ALL_QUESTIONS_DICT = load_all_questions()
