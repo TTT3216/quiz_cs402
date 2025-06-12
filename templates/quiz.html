@@ -54,7 +54,7 @@
             <div class="timer-container">残り時間: <span id="timer">15</span>秒</div>
 
             <form id="quizForm" action="{{ url_for('check_answer') }}" method="post">
-                <input type="text" name="user_answer" placeholder="ここに回答を入力" autocomplete="off" autofocus>
+                <input type="text" name="user_answer" placeholder="ここに回答を入力" autocomplete="off">
                 <div class="button-group">
                     <button type="submit" class="submit-button">解答する</button>
                     <button type="button" class="quit-button" onclick="window.location.href='{{ url_for('confirm_quit') }}'">終了</button>
@@ -108,7 +108,7 @@
 
             if (inputField) {
                 inputField.value = '';
-                inputField.focus();
+                inputField.focus(); // JavaScriptで明示的にフォーカスを設定
             }
             startTimer();
         }
