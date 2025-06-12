@@ -201,11 +201,6 @@
                 if (quitButton) quitButton.disabled = true;
             }
         };
-
-        // Flaskのリダイレクトでページが再ロードされるたびにwindow.onloadが呼ばれるため、
-        // メッセージがあるかどうかで次の問題をロードしたのか、回答後のフィードバック表示なのかを判断します。
-        // もし次の問題へ進むボタンをクリックして新しい問題がロードされた場合は、messageElementは存在しません。
-        // （/quiz にリダイレクトされるため）
     </script>
 </body>
 </html>
