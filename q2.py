@@ -197,7 +197,7 @@ def quiz():
         session['current_question_index'] += 1
         session['quiz_message'] = f"時間切れ。正解は '{question_data['answer'].strip()}' です。" # メッセージを「時間切れ。」に統一
         session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
-        return redirect(url_for('quiz')) # ★ ここに return を追加
+        return redirect(url_for('quiz')) 
 
     # 'start_time' をテンプレートに渡すことで、JavaScriptでタイマーを正確に開始できる
     return render_template('quiz.html', 
