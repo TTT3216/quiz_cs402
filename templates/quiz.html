@@ -61,18 +61,20 @@
                 </div>
             </form>
 
+            {# メッセージがある場合は、次の問題ボタンと表示を制御 #}
             {% if message %}
                 <p class="message 
                     {% if '正解' in message %}correct
                     {% elif '不正解' in message %}incorrect
                     {% elif '時間切れ' in message %}timeout{% endif %}">{{ message }}</p>
-                {% if '不正解' in message or '時間切れ' in message %}
-                    <div class="single-button-form"> {# 新しいフォームでボタンをラップ #}
+                {# 正解、不正解、時間切れのいずれかのメッセージが表示されている場合、次の問題ボタンを表示 #}
+                {% if '正解' in message or '不正解' in message or '時間切れ' in message %}
+                    <div class="single-button-form">
                         <form action="{{ url_for('quiz') }}" method="get">
                             <button type="submit" class="submit-button">次の問題</button>
                         </form>
                     </div>
-                    {% endif %}
+                {% endif %}
             {% endif %}
 
         {% else %}
@@ -84,44 +86,30 @@
     </div>
 
     <script>
-        let timerInterval; // グローバルスコープに移動
-        const initialTime = 15; // 初期残り時間（秒）を定数として定義
-        let timeLeft = initialTime; // 初期残り時間（秒）
+        let timerInterval;
+        const initialTime = 15;
+        let timeLeft = initialTime;
 
         function initializeQuizState() {
-            // タイマーをクリアし、初期値を設定
             clearInterval(timerInterval);
-            timeLeft = initialTime; // 初期時間に戻す
+            timeLeft = initialTime;
             const timerElement = document.getElementById('timer');
             if (timerElement) {
                 timerElement.textContent = timeLeft;
             }
 
-            // フォームとボタンを有効化
             const inputField = document.querySelector('input[name="user_answer"]');
             const submitButton = document.querySelector('button[type="submit"]');
-            const quitButton = document.querySelector('.button-group button.quit-button'); // 最初の終了ボタンを正確に指定
+            const quitButton = document.querySelector('.button-group button.quit-button');
 
             if (inputField) inputField.disabled = false;
             if (submitButton) submitButton.disabled = false;
             if (quitButton) quitButton.disabled = false;
 
-            // フォームの hidden input を削除（もしあれば）
-            const quizForm = document.getElementById('quizForm');
-            if (quizForm) {
-                const hiddenInput = quizForm.querySelector('input[type="hidden"][name="user_answer"]');
-                if (hiddenInput) {
-                    hiddenInput.remove();
-                }
-            }
-
-            // 入力フィールドをクリアし、フォーカスを当てる
             if (inputField) {
                 inputField.value = '';
                 inputField.focus();
             }
-
-            // タイマーを開始
             startTimer();
         }
 
@@ -129,7 +117,6 @@
             const timerElement = document.getElementById('timer');
             const quizForm = document.getElementById('quizForm');
             
-            // 既存のタイマーがあればクリア
             clearInterval(timerInterval);
 
             timerInterval = setInterval(() => {
@@ -150,52 +137,75 @@
 
         function submitTimeoutAnswer() {
             const quizForm = document.getElementById('quizForm');
-            if (!quizForm) return; // フォームが存在しない場合は何もしない
+            if (!quizForm) return;
 
-            // 時間切れの場合の回答を送信するための隠しフィールドを追加
             const input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'user_answer';
-            input.value = ''; // 空の回答として送信
+            input.value = '';
             quizForm.appendChild(input);
 
-            // フォームを無効にして、ユーザーが操作できないようにする
             const inputField = document.querySelector('input[name="user_answer"]');
             const submitButton = document.querySelector('button[type="submit"]');
-            const quitButton = document.querySelector('.button-group button.quit-button'); // 最初の終了ボタン
+            const quitButton = document.querySelector('.button-group button.quit-button');
 
             if (inputField) inputField.disabled = true;
             if (submitButton) submitButton.disabled = true;
             if (quitButton) quitButton.disabled = true;
 
-            // フォームを送信
             quizForm.submit();
         }
 
-        // ページがロードされたときに状態を初期化
+        // ページがロードされたとき、または新しい問題が表示されたときにタイマーを初期化
         window.onload = function() {
-            const messageElement = document.querySelector('.message');
-            const questionElement = document.querySelector('h2'); // 質問要素があるか確認
+            const questionElement = document.querySelector('h2'); // 質問要素
+            const messageElement = document.querySelector('.message'); // メッセージ要素
 
-            // 質問要素があり、かつメッセージがない場合（新しい問題が表示された時）
+            // 質問要素があり、かつ現在メッセージが表示されていない場合
+            // これは新しい問題が表示された状態と判断できます
             if (questionElement && !messageElement) {
                 initializeQuizState();
+            } 
+            // メッセージが表示されている場合（回答後）
+            else if (questionElement && messageElement) {
+                // タイマーを止めてN/Aにする
+                clearInterval(timerInterval); // 念のためタイマーを停止
+                const timerElement = document.getElementById('timer');
+                if (timerElement) {
+                    timerElement.textContent = "N/A";
+                }
+                // 入力フィールドとボタンを無効化
+                const inputField = document.querySelector('input[name="user_answer"]');
+                const submitButton = document.querySelector('button[type="submit"]');
+                const quitButton = document.querySelector('.button-group button.quit-button');
+                if (inputField) inputField.disabled = true;
+                if (submitButton) submitButton.disabled = true;
+                if (quitButton) quitButton.disabled = true;
+
+                // 「次の問題」ボタンがある場合、それにフォーカスを当てる
+                const nextQuestionButton = document.querySelector('.single-button-form .submit-button');
+                if (nextQuestionButton) {
+                    nextQuestionButton.focus();
+                }
             } else {
-                // メッセージがある場合 (回答後) や、問題がロードされていない場合
+                // 問題がない場合（例: クイズ終了時など）
                 const timerElement = document.getElementById('timer');
                 if (timerElement) {
                     timerElement.textContent = "N/A";
                 }
                 const inputField = document.querySelector('input[name="user_answer"]');
                 const submitButton = document.querySelector('button[type="submit"]');
-                const quitButton = document.querySelector('.button-group button.quit-button'); // 最初の終了ボタン
-
+                const quitButton = document.querySelector('.button-group button.quit-button');
                 if (inputField) inputField.disabled = true;
                 if (submitButton) submitButton.disabled = true;
                 if (quitButton) quitButton.disabled = true;
             }
         };
 
+        // Flaskのリダイレクトでページが再ロードされるたびにwindow.onloadが呼ばれるため、
+        // メッセージがあるかどうかで次の問題をロードしたのか、回答後のフィードバック表示なのかを判断します。
+        // もし次の問題へ進むボタンをクリックして新しい問題がロードされた場合は、messageElementは存在しません。
+        // （/quiz にリダイレクトされるため）
     </script>
 </body>
 </html>
