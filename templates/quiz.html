@@ -11,17 +11,37 @@
         h2 { color: #555; margin-bottom: 25px; }
         p { font-size: 1.1em; margin-bottom: 20px; }
         input[type="text"] { width: calc(100% - 40px); padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; }
-        .button-group button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s ease; margin: 0 10px; }
+        
+        /* ボタンのスタイル統一 */
+        .button-group button, .single-button-form button {
+            padding: 12px 25px; /* パディングを統一 */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin: 0 10px;
+            min-width: 120px; /* 最小幅を設定してサイズを揃える */
+            box-sizing: border-box; /* パディングとボーダーを幅に含める */
+        }
         button.submit-button { background-color: #007bff; color: white; }
         button.submit-button:hover { background-color: #0056b3; }
         button.quit-button { background-color: #dc3545; color: white; }
         button.quit-button:hover { background-color: #c82333; }
+        button.back-button { background-color: #6c757d; color: white; }
+        button.back-button:hover { background-color: #5a6268; }
+
         .timer-container { margin-top: 15px; font-size: 1.2em; font-weight: bold; color: #0056b3; }
         .message { margin-top: 20px; font-size: 1.1em; font-weight: bold; }
         .correct { color: green; }
         .incorrect { color: red; }
         .timeout { color: orange; } /* 時間切れのメッセージの色 */
         .feedback { margin-top: 15px; font-size: 1.1em; }
+
+        /* 単一ボタン用フォームのスタイル */
+        .single-button-form { margin-top: 20px; }
+        .single-button-form button { margin: 0 auto; display: block; } /* 中央寄せ */
+
     </style>
 </head>
 <body>
@@ -47,10 +67,14 @@
                     {% elif '不正解' in message %}incorrect
                     {% elif '時間切れ' in message %}timeout{% endif %}">{{ message }}</p>
                 {% if '不正解' in message or '時間切れ' in message %}
-                    <form action="{{ url_for('quiz') }}" method="get">
-                        <button type="submit" class="submit-button">次の問題</button>
-                    </form>
-                    <button type="button" class="quit-button" onclick="window.location.href='{{ url_for('confirm_quit') }}'">終了</button>
+                    <div class="single-button-form"> {# 新しいフォームでボタンをラップ #}
+                        <form action="{{ url_for('quiz') }}" method="get">
+                            <button type="submit" class="submit-button">次の問題</button>
+                        </form>
+                    </div>
+                    <div class="single-button-form"> {# 新しいフォームでボタンをラップ #}
+                        <button type="button" class="quit-button" onclick="window.location.href='{{ url_for('confirm_quit') }}'">終了</button>
+                    </div>
                 {% endif %}
             {% endif %}
 
@@ -63,34 +87,68 @@
     </div>
 
     <script>
-        const timerElement = document.getElementById('timer');
-        const quizForm = document.getElementById('quizForm');
+        let timerInterval; // グローバルスコープに移動
         let timeLeft = 10; // 初期残り時間（秒）
 
-        // メッセージが表示されている場合はタイマーを停止し、フォームを無効にする
-        const messageElement = document.querySelector('.message');
-        if (messageElement) {
-            // メッセージがある場合はタイマーを無効化
-            timerElement.textContent = "N/A"; // タイマー表示を無効に
-            // 解答入力欄と解答ボタンも無効化
-            document.querySelector('input[name="user_answer"]').disabled = true;
-            document.querySelector('button[type="submit"]').disabled = true;
-        } else {
-            // メッセージがない場合のみタイマーを開始
-            const timerInterval = setInterval(() => {
-                timeLeft--;
+        function initializeQuizState() {
+            // タイマーをクリアし、初期値を設定
+            clearInterval(timerInterval);
+            timeLeft = 10;
+            const timerElement = document.getElementById('timer');
+            if (timerElement) {
                 timerElement.textContent = timeLeft;
+            }
+
+            // フォームとボタンを有効化
+            const inputField = document.querySelector('input[name="user_answer"]');
+            const submitButton = document.querySelector('button[type="submit"]');
+            const quitButton = document.querySelector('.button-group .quit-button'); // 最初の終了ボタン
+
+            if (inputField) inputField.disabled = false;
+            if (submitButton) submitButton.disabled = false;
+            if (quitButton) quitButton.disabled = false;
+
+            // フォームの hidden input を削除（もしあれば）
+            const hiddenInput = document.querySelector('#quizForm input[type="hidden"][name="user_answer"]');
+            if (hiddenInput) {
+                hiddenInput.remove();
+            }
+
+            // 入力フィールドにフォーカスを当てる
+            if (inputField) {
+                inputField.value = ''; // 入力欄をクリア
+                inputField.focus();
+            }
+
+            // タイマーを開始
+            startTimer();
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            const quizForm = document.getElementById('quizForm');
+            
+            // 既存のタイマーがあればクリア
+            clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timerElement) {
+                    timerElement.textContent = timeLeft;
+                }
 
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    timerElement.textContent = "時間切れ！";
-                    // 時間切れになったら自動的にフォームを送信
+                    if (timerElement) {
+                        timerElement.textContent = "時間切れ！";
+                    }
                     submitTimeoutAnswer();
                 }
             }, 1000);
         }
 
         function submitTimeoutAnswer() {
+            const quizForm = document.getElementById('quizForm');
             // 時間切れの場合の回答を送信するための隠しフィールドを追加
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -99,19 +157,37 @@
             quizForm.appendChild(input);
 
             // フォームを無効にして、ユーザーが操作できないようにする
-            document.querySelector('input[name="user_answer"]').disabled = true;
-            document.querySelector('button[type="submit"]').disabled = true;
-            document.querySelector('button.quit-button').disabled = true; // 終了ボタンも無効化
+            const inputField = document.querySelector('input[name="user_answer"]');
+            const submitButton = document.querySelector('button[type="submit"]');
+            const quitButton = document.querySelector('.button-group .quit-button'); // 最初の終了ボタン
+
+            if (inputField) inputField.disabled = true;
+            if (submitButton) submitButton.disabled = true;
+            if (quitButton) quitButton.disabled = true;
 
             // フォームを送信
             quizForm.submit();
         }
 
-        // ページがロードされたときに、入力フィールドにフォーカスを当てる
+        // ページがロードされたときに状態を初期化
         window.onload = function() {
-            const inputField = document.querySelector('input[name="user_answer"]');
-            if (inputField && !messageElement) { // メッセージがない場合のみフォーカス
-                inputField.focus();
+            const messageElement = document.querySelector('.message');
+            // メッセージがない場合のみタイマーを開始し、状態を初期化
+            if (!messageElement) {
+                initializeQuizState();
+            } else {
+                // メッセージがある場合 (回答後) は、タイマー表示をN/Aに、フォームを無効にする
+                const timerElement = document.getElementById('timer');
+                if (timerElement) {
+                    timerElement.textContent = "N/A";
+                }
+                const inputField = document.querySelector('input[name="user_answer"]');
+                const submitButton = document.querySelector('button[type="submit"]');
+                const quitButton = document.querySelector('.button-group .quit-button'); // 最初の終了ボタン
+
+                if (inputField) inputField.disabled = true;
+                if (submitButton) submitButton.disabled = true;
+                if (quitButton) quitButton.disabled = true;
             }
         };
 
