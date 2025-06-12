@@ -468,5 +468,215 @@
     "id": "A9_010",
     "question": "パケット交換網上で、あたかも専用回線であるかのように仮想的な接続を確立して通信を行う方式は何でしょう？",
     "answer": "仮想通話"
+  },
+  {
+    "id": "Leap134",
+    "question": "enable",
+    "answer": "可能にする"
+  },
+  {
+    "id": "Leap135",
+    "question": "succeed",
+    "answer": "成功する"
+  },
+  {
+    "id": "Leap136",
+    "question": "miss",
+    "answer": "〜を逃す"
+  },
+  {
+    "id": "Leap137",
+    "question": "fail",
+    "answer": "失敗する"
+  },
+  {
+    "id": "Leap138",
+    "question": "mistake",
+    "answer": "間違い"
+  },
+  {
+    "id": "Leap139",
+    "question": "check",
+    "answer": "〜を調べる"
+  },
+  {
+    "id": "Leap140",
+    "question": "hide",
+    "answer": "隠す"
+  },
+  {
+    "id": "Leap141",
+    "question": "draw",
+    "answer": "〜を描く"
+  },
+  {
+    "id": "Leap142",
+    "question": "join",
+    "answer": "〜に加わる"
+  },
+  {
+    "id": "Leap143",
+    "question": "throw",
+    "answer": "〜を投げる"
+  },
+  {
+    "id": "Leap144",
+    "question": "operate",
+    "answer": "操作する"
+  },
+  {
+    "id": "Leap145",
+    "question": "repair",
+    "answer": "修理する"
+  },
+  {
+    "id": "Leap146",
+    "question": "sew",
+    "answer": "縫う"
+  },
+  {
+    "id": "Leap147",
+    "question": "raise",
+    "answer": "上げる"
+  },
+  {
+    "id": "Leap148",
+    "question": "serve",
+    "answer": "役立つ"
+  },
+  {
+    "id": "Leap149",
+    "question": "pour",
+    "answer": "注ぐ"
+  },
+  {
+    "id": "Leap150",
+    "question": "spill",
+    "answer": "こぼす"
+  },
+  {
+    "id": "Leap151",
+    "question": "pretend",
+    "answer": "〜のふりをする"
+  },
+  {
+    "id": "Leap152",
+    "question": "behave",
+    "answer": "ふるまう"
+  },
+  {
+    "id": "Leap153",
+    "question": "bear",
+    "answer": "耐える"
+  },
+  {
+    "id": "Leap154",
+    "question": "explore",
+    "answer": "探検する"
+  },
+  {
+    "id": "Leap155",
+    "question": "happen",
+    "answer": "起こる"
+  },
+  {
+    "id": "Leap156",
+    "question": "appear",
+    "answer": "現れる"
+  },
+  {
+    "id": "Leap157",
+    "question": "remain",
+    "answer": "〜のままでいる"
+  },
+  {
+    "id": "Leap158",
+    "question": "survive",
+    "answer": "生き残る"
+  },
+  {
+    "id": "Leap159",
+    "question": "belong",
+    "answer": "〜に所属する"
+  },
+  {
+    "id": "Leap160",
+    "question": "represent",
+    "answer": "表す"
+  },
+  {
+    "id": "Leap161",
+    "question": "base",
+    "answer": "〜の基礎"
+  },
+  {
+    "id": "Leap162",
+    "question": "include",
+    "answer": "〜を含む"
+  },
+  {
+    "id": "Leap163",
+    "question": "contain",
+    "answer": "〜を含む"
+  },
+  {
+    "id": "Leap164",
+    "question": "own",
+    "answer": "所有している"
+  },
+  {
+    "id": "Leap165",
+    "question": "share",
+    "answer": "共有する"
+  },
+  {
+    "id": "Leap166",
+    "question": "collect",
+    "answer": "集める"
+  },
+  {
+    "id": "Leap167",
+    "question": "gather",
+    "answer": "集める"
+  },
+  {
+    "id": "Leap168",
+    "question": "history",
+    "answer": "歴史"
+  },
+  {
+    "id": "Leap169",
+    "question": "subject",
+    "answer": "科目"
+  },
+  {
+    "id": "Leap170",
+    "question": "education",
+    "answer": "教育"
+  },
+  {
+    "id": "Leap171",
+    "question": "knowledge",
+    "answer": "知識"
+  },
+  {
+    "id": "Leap172",
+    "question": "uniform",
+    "answer": "制服"
+  },
+  {
+    "id": "Leap173",
+    "question": "grade",
+    "answer": "学年"
+  },
+  {
+    "id": "Leap174",
+    "question": "senior",
+    "answer": "最上級の"
+  },
+  {
+    "id": "Leap175",
+    "question": "graduate",
+    "answer": "卒業する"
   }
 ]
