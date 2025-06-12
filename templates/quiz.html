@@ -88,7 +88,7 @@
         let timerInterval;
         const initialTime = 15;
         let timeLeft = initialTime;
-        const messageDisplayDuration = 2000; // メッセージ表示時間 (ミリ秒)
+        // const messageDisplayDuration = 2000; // 自動遷移を削除するため不要
 
         function initializeQuizState() {
             clearInterval(timerInterval);
@@ -99,10 +99,10 @@
             }
 
             const inputField = document.querySelector('input[name="user_answer"]');
-            const submitButton = document.querySelector('button[type="submit"]');
+            const submitButton = document.querySelector('button[type="submit"].submit-button'); // 正しいセレクタを使用
             const quitButton = document.querySelector('.button-group button.quit-button');
             const messageElement = document.getElementById('message-display'); 
-            const nextButtonContainer = document.getElementById('nextQuestionButtonContainer'); // 新しく追加
+            const nextButtonContainer = document.getElementById('nextQuestionButtonContainer');
 
             // 全ての要素を有効化
             if (inputField) inputField.disabled = false;
@@ -111,11 +111,11 @@
 
             // メッセージ要素があれば非表示に
             if (messageElement) {
-                messageElement.style.display = 'none';
+                messageElement.style.display = 'none'; // メッセージを隠す
             }
             // 次の問題ボタンコンテナがあれば非表示に
             if (nextButtonContainer) {
-                nextButtonContainer.style.display = 'none';
+                nextButtonContainer.style.display = 'none'; // 次の問題ボタンを隠す
             }
 
             if (inputField) {
@@ -161,7 +161,7 @@
 
             // 入力フィールドとボタンを無効化して重複送信を防ぐ
             const inputField = document.querySelector('input[name="user_answer"]');
-            const submitButton = document.querySelector('button[type="submit"]');
+            const submitButton = document.querySelector('button[type="submit"].submit-button');
             const quitButton = document.querySelector('.button-group button.quit-button');
 
             if (inputField) inputField.disabled = true;
@@ -183,7 +183,7 @@
                 if (messageElement && messageElement.textContent.trim() !== '') { // メッセージが表示されている場合
                     // 入力フィールドとボタンを一時的に無効化
                     const inputField = document.querySelector('input[name="user_answer"]');
-                    const submitButton = document.querySelector('button[type="submit"]');
+                    const submitButton = document.querySelector('button[type="submit"].submit-button');
                     const quitButton = document.querySelector('.button-group button.quit-button');
                     if (inputField) inputField.disabled = true;
                     if (submitButton) submitButton.disabled = true;
@@ -194,10 +194,10 @@
                         nextButtonContainer.style.display = 'block';
                     }
                     
-                    // 自動遷移は引き続き行う
-                    setTimeout(() => {
-                        window.location.href = "{{ url_for('quiz') }}";
-                    }, messageDisplayDuration);
+                    // !!! ここにあった自動遷移の setTimeout ロジックは削除します !!!
+                    // setTimeout(() => {
+                    //     window.location.href = "{{ url_for('quiz') }}";
+                    // }, messageDisplayDuration);
 
                 } else {
                     // 新しい問題が表示された状態（メッセージがない状態）
@@ -210,7 +210,7 @@
                     timerElement.textContent = "N/A";
                 }
                 const inputField = document.querySelector('input[name="user_answer"]');
-                const submitButton = document.querySelector('button[type="submit"]');
+                const submitButton = document.querySelector('button[type="submit"].submit-button');
                 const quitButton = document.querySelector('.button-group button.quit-button');
                 if (inputField) inputField.disabled = true;
                 if (submitButton) submitButton.disabled = true;
