@@ -180,8 +180,13 @@ def quiz():
         return redirect(url_for('quiz')) # 次の問題へリダイレクト
     
     # 時間切れチェック（クライアントサイドでJavaScriptが行うが、念のためサーバー側でも）
+    # Flaskのredirectでページ再ロードが走るため、前回のページロードから15秒以上経過していれば時間切れとみなす
     elapsed_time = int(time.time()) - session.get('last_question_time', 0)
-    if elapsed_time > 10 and request.method == 'GET': # GETリクエスト（ページ読み込み時）にのみ時間切れをチェック
+    # GETリクエスト（ページ読み込み時）かつ、経過時間が制限時間（15秒）を超えている場合
+    if elapsed_time > 15 and request.method == 'GET' and not session.get('quiz_message'): 
+        # session.get('quiz_message') が存在しない場合のみ時間切れを判定
+        # これにより、ユーザーが回答してメッセージが表示された直後に時間切れ判定されるのを防ぐ
+
         # 時間切れとして回答ログに追加
         session['answered_questions_log'].append({
             "id": question_data.get('id', 'IDなし'),
@@ -195,6 +200,7 @@ def quiz():
         session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
         return redirect(url_for('quiz')) # 次の問題へリダイレクト
 
+    # 'start_time' をテンプレートに渡すことで、JavaScriptでタイマーを正確に開始できる
     return render_template('quiz.html', 
                            question=question_data, 
                            current_index=current_index + 1, 
@@ -211,6 +217,10 @@ def check_answer():
     user_answer = request.form.get('user_answer', '').strip()
     current_index = session.get('current_question_index', 0)
     question_ids = session.get('current_question_ids', []) # IDリストを取得
+
+    # ユーザーが解答を送信した時点で、quiz_messageをクリアしておく
+    # これにより、次のquiz()へのリダイレクト時に時間切れ判定が誤って行われるのを防ぐ
+    session['quiz_message'] = "" 
 
     if current_index >= len(question_ids):
         session['quiz_status'] = 'finished'
@@ -264,12 +274,18 @@ def confirm_quit():
 @app.route('/quit_app', methods=['POST'])
 def quit_app():
     """アプリを終了する（セッションをクリアしてトップページに戻る）"""
-    if request.form.get('action') == 'show_log':
+    action = request.form.get('action') # ここで 'show_log' または 'quit' を受け取る
+
+    if action == 'show_log':
         # ログ表示を選択した場合、セッションはクリアせずログ画面へ
         session['quiz_status'] = 'finished' # クイズの状態を「終了」にする
         return redirect(url_for('log'))
-    else:
+    elif action == 'quit': # 'quit' アクションを追加
         session.clear() # セッションデータを全てクリア
+        return redirect(url_for('index'))
+    else:
+        # 想定外のアクションの場合、デフォルトでトップページに戻る
+        session.clear()
         return redirect(url_for('index'))
 
 if __name__ == '__main__':
