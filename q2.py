@@ -1,13 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 import json
 import random
 import re
-import time
+import time # timeモジュールを追加
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here' # セッション管理のためのシークレットキー。本番環境ではより複雑なものにしてください
+# 本番環境では、より複雑で推測されにくいシークレットキーを使用してください
+# 環境変数などから取得することをおすすめします
+app.secret_key = 'your_super_secret_key_here_for_security' 
 
-# --- ヘルパー関数 (Tkinter版から移植・調整) ---
+# --- ヘルパー関数 ---
 def prefix_to_int(prefix):
     """アルファベットの接頭辞を整数に変換するヘルパー関数"""
     val = 0
@@ -33,16 +35,14 @@ def load_all_questions(filename="words.json"):
         print(f"ファイルの読み込み中にエラーが発生しました: {e}")
         return [], {}
 
-def get_selected_question_ids(all_questions_list, range_input): # 関数名を変更
+def get_selected_question_ids(all_questions_list, range_input):
     """入力されたID範囲に基づいて問題のIDを選択する"""
-    selected_question_ids = [] # 問題オブジェクトではなくIDのリストを返す
+    selected_question_ids = []
     if not range_input: # 何も入力されていない場合は全範囲
         return [q.get('id') for q in all_questions_list if q.get('id')]
 
     try:
-        ranges = [r.strip().upper() for r in range_input.split(',')] # 大文字に変換
-        
-        # 既存の全問題IDリストを効率的に検索できるように準備
+        ranges = [r.strip().upper() for r in range_input.split(',')]
         all_q_ids_set = {q.get('id') for q in all_questions_list if q.get('id')}
 
         for r_str in ranges:
@@ -51,13 +51,13 @@ def get_selected_question_ids(all_questions_list, range_input): # 関数名を�
                 raise ValueError(f"範囲指定の形式が不正です: '{r_str}' (例: A1_001-A1_005)")
             
             start_prefix, start_num_str, end_prefix, end_num_str = match.groups()
-            start_num = int(start_num_str)
             
             if end_prefix is None and end_num_str is None: # 単一ID指定 (例: A1_001)
                 target_id_formatted = f"{start_prefix}_{int(start_num_str):03d}"
                 if target_id_formatted in all_q_ids_set and target_id_formatted not in selected_question_ids:
                     selected_question_ids.append(target_id_formatted)
             else: # 範囲指定 (例: A1_001-A1_005)
+                start_num = int(start_num_str)
                 end_num = int(end_num_str)
                 
                 start_prefix_val = prefix_to_int(start_prefix)
@@ -68,7 +68,7 @@ def get_selected_question_ids(all_questions_list, range_input): # 関数名を�
                 if start_prefix_val == end_prefix_val and start_num > end_num:
                     raise ValueError(f"範囲指定の開始番号が終了番号より大きいです: '{r_str}'")
 
-                for q_item in all_questions_list: # all_questions_list をループ
+                for q_item in all_questions_list:
                     q_id = q_item.get("id")
                     if not q_id: continue
 
@@ -92,11 +92,11 @@ def get_selected_question_ids(all_questions_list, range_input): # 関数名を�
                         elif q_prefix == end_prefix and q_num <= end_num:
                             is_in_range = True
                     
-                    if is_in_range and q_id not in selected_question_ids: # 重複を避ける
-                        selected_question_ids.append(q_id) # IDを追加
+                    if is_in_range and q_id not in selected_question_ids:
+                        selected_question_ids.append(q_id)
         return selected_question_ids
     except ValueError as ve:
-        raise ve # エラーを呼び出し元に伝える
+        raise ve
     except Exception as e:
         raise Exception(f"問題選択中に予期せぬエラーが発生しました: {e}")
 
@@ -109,7 +109,7 @@ ALL_QUESTIONS_LIST, ALL_QUESTIONS_DICT = load_all_questions()
 def initialize_quiz_session():
     """リクエストごとにセッションを初期化または設定する"""
     # セッションの初期化は初回アクセス時のみ行われるようにする
-    if 'current_question_ids' not in session: # キー名を変更
+    if 'current_question_ids' not in session:
         session['current_question_ids'] = []
         session['current_question_index'] = -1
         session['answered_questions_log'] = []
@@ -121,11 +121,10 @@ def initialize_quiz_session():
 def index():
     """クイズ開始画面（範囲選択）"""
     # セッション情報をクリアしてリセット
-    session.clear() # これにより、before_requestで新しいセッションが初期化される
-    session['quiz_status'] = 'not_started'
-    session['quiz_message'] = ""
-    session['range_error'] = ""
-    return render_template('index.html', message=session.get('quiz_message'), error=session.get('range_error'))
+    session.clear() 
+    # before_requestが実行され、新しいセッションが初期化される
+    # そのため、ここでは特にセッション変数を設定し直す必要はないが、明示的に設定しても問題ない
+    return render_template('index.html', error=session.pop('range_error', None))
 
 @app.route('/start_quiz', methods=['POST'])
 def start_quiz():
@@ -134,16 +133,16 @@ def start_quiz():
     
     session['answered_questions_log'] = [] # 新しいクイズ開始時にログをリセット
     session['quiz_message'] = ""
-    session['range_error'] = ""
+    session['range_error'] = "" # エラーメッセージをクリア
 
     try:
-        selected_question_ids = get_selected_question_ids(ALL_QUESTIONS_LIST, range_input) # IDリストを取得
+        selected_question_ids = get_selected_question_ids(ALL_QUESTIONS_LIST, range_input)
         if not selected_question_ids:
             session['range_error'] = "指定された範囲に問題が見つかりませんでした。"
             return redirect(url_for('index'))
 
         random.shuffle(selected_question_ids) # IDリストをシャッフル
-        session['current_question_ids'] = selected_question_ids # IDリストをセッションに保存
+        session['current_question_ids'] = selected_question_ids
         session['current_question_index'] = 0 # 最初の問題から開始
         session['quiz_status'] = 'in_progress'
         session['last_question_time'] = int(time.time()) # 問題表示開始時間
@@ -159,34 +158,33 @@ def start_quiz():
 @app.route('/quiz')
 def quiz():
     """クイズ問題表示画面"""
+    # クイズが進行中でないか、問題リストがない場合はトップに戻す
     if session.get('quiz_status') != 'in_progress' or not session.get('current_question_ids'):
         return redirect(url_for('index'))
 
     current_index = session.get('current_question_index', 0)
     question_ids = session.get('current_question_ids', [])
 
+    # すべての問題が終了した場合
     if current_index >= len(question_ids):
         session['quiz_status'] = 'finished'
         session['quiz_message'] = "すべての問題が終了しました！"
         return redirect(url_for('log'))
     
-    # セッションに保存されたIDから問題データを取得
+    # 現在の問題データを取得
     current_question_id = question_ids[current_index]
     question_data = ALL_QUESTIONS_DICT.get(current_question_id)
 
     if not question_data: # 問題データが見つからない場合のエラーハンドリング
         session['quiz_message'] = "問題データが見つかりませんでした。次の問題に進みます。"
         session['current_question_index'] += 1
+        session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
         return redirect(url_for('quiz')) # 次の問題へリダイレクト
-    
-    # 時間切れチェック（クライアントサイドでJavaScriptが行うが、念のためサーバー側でも）
-    # Flaskのredirectでページ再ロードが走るため、前回のページロードから15秒以上経過していれば時間切れとみなす
-    elapsed_time = int(time.time()) - session.get('last_question_time', 0)
-    # GETリクエスト（ページ読み込み時）かつ、経過時間が制限時間（15秒）を超えている場合
-    # quiz_message が存在する（つまり、直前の回答の結果が表示されている）場合は、この時間切れ判定をスキップ
-    # これは、メッセージ表示時間中に誤って時間切れと判定されるのを防ぐため
-    if elapsed_time > 15 and request.method == 'GET' and not session.get('quiz_message'): 
-        # 時間切れとして回答ログに追加
+
+    # 時間切れチェック（クライアントサイドでJavaScriptが行うが、サーバー側でも念のため）
+    # 直前のリクエストが回答送信（POST）ではなく、かつ前回問題が表示されてから15秒以上経過している場合
+    # ※ `quiz_message` は、直前の回答結果メッセージを保持するために使用
+    if request.method == 'GET' and not session.get('quiz_message_shown') and (int(time.time()) - session.get('last_question_time', 0)) > 15:
         session['answered_questions_log'].append({
             "id": question_data.get('id', 'IDなし'),
             "question": question_data['question'],
@@ -195,17 +193,21 @@ def quiz():
             "result": "時間切れ (不正解)"
         })
         session['current_question_index'] += 1
-        session['quiz_message'] = f"時間切れ。正解は '{question_data['answer'].strip()}' です。" # メッセージを「時間切れ。」に統一
+        session['quiz_message'] = f"時間切れ。正解は '{question_data['answer'].strip()}' です。"
+        session['quiz_message_shown'] = True # メッセージを表示したことを示すフラグ
         session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
-        return redirect(url_for('quiz')) 
+        return redirect(url_for('quiz')) # メッセージ表示のためにリダイレクト
 
-    # 'start_time' をテンプレートに渡すことで、JavaScriptでタイマーを正確に開始できる
+    # テンプレートに渡すメッセージを pop() で取得し、一度表示したらセッションから削除
+    # これにより、次の問題がロードされたときにメッセージが残らないようにする
+    message_to_display = session.pop('quiz_message', None)
+    session.pop('quiz_message_shown', None) # メッセージ表示フラグも削除
+
     return render_template('quiz.html', 
                            question=question_data, 
                            current_index=current_index + 1, 
                            total_questions=len(question_ids),
-                           message=session.get('quiz_message', ''),
-                           start_time=session.get('last_question_time', 0))
+                           message=message_to_display) # メッセージを渡す
 
 @app.route('/check_answer', methods=['POST'])
 def check_answer():
@@ -215,18 +217,13 @@ def check_answer():
 
     user_answer = request.form.get('user_answer', '').strip()
     current_index = session.get('current_question_index', 0)
-    question_ids = session.get('current_question_ids', []) # IDリストを取得
-
-    # ユーザーが解答を送信した時点で、quiz_messageをクリアしておく
-    # これにより、次のquiz()へのリダイレクト時に時間切れ判定が誤って行われるのを防ぐ
-    session['quiz_message'] = "" 
+    question_ids = session.get('current_question_ids', [])
 
     if current_index >= len(question_ids):
         session['quiz_status'] = 'finished'
         session['quiz_message'] = "すべての問題が終了しました！"
         return redirect(url_for('log'))
 
-    # セッションに保存されたIDから問題データを取得
     current_question_id = question_ids[current_index]
     question_data = ALL_QUESTIONS_DICT.get(current_question_id)
 
@@ -234,6 +231,7 @@ def check_answer():
         session['quiz_message'] = "問題データが見つかりませんでした。次の問題に進みます。"
         session['current_question_index'] += 1
         session['last_question_time'] = int(time.time())
+        session['quiz_message_shown'] = True # メッセージを表示したことを示す
         return redirect(url_for('quiz'))
 
     correct_answer = question_data["answer"].strip()
@@ -255,6 +253,7 @@ def check_answer():
     })
     
     session['quiz_message'] = result_message
+    session['quiz_message_shown'] = True # メッセージを表示したことを示すフラグ
     session['current_question_index'] += 1
     session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
 
@@ -273,22 +272,23 @@ def confirm_quit():
 @app.route('/quit_app', methods=['POST'])
 def quit_app():
     """アプリを終了する（セッションをクリアしてトップページに戻る）"""
-    action = request.form.get('action') # ここで 'show_log' または 'quit' を受け取る
+    action = request.form.get('action')
 
     if action == 'show_log':
-        # ログ表示を選択した場合、セッションはクリアせずログ画面へ
-        session['quiz_status'] = 'finished' # クイズの状態を「終了」にする
+        session['quiz_status'] = 'finished'
         return redirect(url_for('log'))
-    elif action == 'quit': # 'quit' アクションを追加
-        session.clear() # セッションデータを全てクリア
+    elif action == 'quit':
+        session.clear()
         return redirect(url_for('index'))
     else:
-        # 想定外のアクションの場合、デフォルトでトップページに戻る
         session.clear()
         return redirect(url_for('index'))
 
+# Render.comなどのWSGIサーバーで実行するためのエントリポイント
+# ローカルで開発する際は 'app.run(debug=True)' を使用
 if __name__ == '__main__':
     if not ALL_QUESTIONS_LIST:
         print("エラー: words.json から問題が読み込めませんでした。アプリを終了します。")
     else:
+        # ローカルでの開発用。デプロイ時にはGunicornなどが 'app' オブジェクトを自動で探し実行します。
         app.run(debug=True, host='0.0.0.0', port=5000)
