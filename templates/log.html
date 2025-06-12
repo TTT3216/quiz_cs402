@@ -21,8 +21,8 @@
         button.back-button:hover { background-color: #5a6268; }
         button.quit-button { background-color: #dc3545; color: white; }
         button.quit-button:hover { background-color: #c82333; }
-        button.copy-button { background-color: #007bff; color: white; } /* コピーボタンのスタイルを追加 */
-        button.copy-button:hover { background-color: #0056b3; } /* コピーボタンのホバースタイル */
+        button.copy-button { background-color: #007bff; color: white; }
+        button.copy-button:hover { background-color: #0056b3; }
 
         textarea { width: calc(100% - 20px); height: 300px; border: 1px solid #ddd; border-radius: 4px; padding: 10px; font-family: 'Arial', sans-serif; font-size: 0.9em; resize: vertical; margin-bottom: 15px; }
         .copy-info { text-align: center; font-size: 0.9em; color: #555; margin-top: 10px; }
@@ -50,8 +50,8 @@ ID: {{ entry.id }}
 
             <div class="button-group">
                 <button class="copy-button" onclick="copyLogContent()">回答状況をコピー</button>
-                <button class="back-button" data-url="{{ url_for('index') }}" onclick="window.location.href=this.dataset.url;">クイズに戻る</button>
-                <button class="quit-button" data-url="{{ url_for('confirm_quit') }}" onclick="window.location.href=this.dataset.url;">終了する</button>
+                <button class="back-button" data-url="{{ url_for('index') }}" onclick="window.location.href=this.dataset.url;">トップに戻る</button> {# 「クイズに戻る」から「トップに戻る」に変更 #}
+                <button class="quit-button" data-url="{{ url_for('confirm_quit') }}" onclick="window.location.href=this.dataset.url;">クイズを終了</button> {# より明確な表現に #}
             </div>
         {% endif %}
     </div>
@@ -59,11 +59,11 @@ ID: {{ entry.id }}
     <script>
         function copyLogContent() {
             const logTextarea = document.getElementById('logContent');
-            logTextarea.select(); // テキストエリアの全内容を選択
-            logTextarea.setSelectionRange(0, 99999); // モバイルデバイス対応
+            logTextarea.select();
+            logTextarea.setSelectionRange(0, 99999);
 
             try {
-                document.execCommand('copy'); // クリップボードにコピー
+                document.execCommand('copy');
                 alert('回答状況がクリップボードにコピーされました！');
             } catch (err) {
                 console.error('クリップボードへのコピーに失敗しました', err);
