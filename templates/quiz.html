@@ -56,7 +56,7 @@
             {% if message %}
                 <p id="message-display" class="message 
                     {% if '正解' in message %}correct
-                    {% elif '不正解' in message %}incorrect
+                    {% elif '不正解' in message and '時間切れ' not in message %}incorrect
                     {% elif '時間切れ' in message %}timeout{% endif %}">{{ message }}</p>
             {% endif %}
 
@@ -85,28 +85,21 @@
             const inputField = document.querySelector('input[name="user_answer"]');
             const submitButton = document.querySelector('button[type="submit"]');
             const quitButton = document.querySelector('.button-group button.quit-button');
-            const messageElement = document.getElementById('message-display');
-
-            // 全ての要素を有効化
-            if (inputField) inputField.disabled = false;
+            
+            // 全ての要素を有効化 (メッセージ表示後の再有効化も含む)
+            if (inputField) {
+                inputField.disabled = false;
+                inputField.value = ''; // 入力欄をクリア
+                inputField.focus(); // フォーカスを当てる
+            }
             if (submitButton) submitButton.disabled = false;
             if (quitButton) quitButton.disabled = false;
-
-            if (inputField) {
-                inputField.value = '';
-                inputField.focus(); // JavaScriptで明示的にフォーカスを設定
-            }
-            // メッセージ要素があれば非表示にする
-            if (messageElement) {
-                messageElement.style.display = 'none';
-            }
-
+            
             startTimer();
         }
 
         function startTimer() {
             const timerElement = document.getElementById('timer');
-            // quizForm はこの関数内では直接使わないため削除
             
             clearInterval(timerInterval); // 既存のタイマーをクリア
 
@@ -157,7 +150,8 @@
             // 質問要素がある場合（クイズ画面）
             if (questionElement) {
                 // メッセージがある場合（回答チェック後のリダイレクト時）
-                // messageElementが存在し、かつ表示されている場合
+                // messageElementが存在し、かつ表示されている（displayがnoneでない）場合
+                // textContent.trim() !== '' で、メッセージが空文字列でないことも確認
                 if (messageElement && messageElement.style.display !== 'none' && messageElement.textContent.trim() !== '') {
                     // 入力フィールドとボタンを一時的に無効化
                     const inputField = document.querySelector('input[name="user_answer"]');
@@ -169,14 +163,18 @@
 
                     // メッセージ表示後、自動的に次の問題へ遷移
                     setTimeout(() => {
+                        // メッセージを非表示にしてからリダイレクト
+                        if (messageElement) { // 念のため再確認
+                            messageElement.style.display = 'none'; 
+                        }
                         window.location.href = "{{ url_for('quiz') }}";
                     }, messageDisplayDuration);
                 } else {
-                    // 新しい問題が表示された状態（メッセージがない状態、またはメッセージが空の状態）
+                    // 新しい問題が表示された状態（メッセージがない状態）
                     initializeQuizState();
                 }
             } else {
-                // 問題がない場合（例: クイズ終了後のログ画面、またはエラーで問題が表示されない場合）
+                // 問題がない場合（例: クイズ終了後のログ画面など）
                 const timerElement = document.getElementById('timer');
                 if (timerElement) {
                     timerElement.textContent = "N/A";
