@@ -1,4 +1,5 @@
---- /dev/null
+--- a/c:/Users/takam1/Desktop/quiz/Procfile
 +++ b/c:/Users/takam1/Desktop/quiz/Procfile
-@@ -0,0 +1 @@
-+web: python app.py
+@@ -1 +1 @@
+-web: python app.py
++web: gunicorn app:app
