@@ -183,10 +183,9 @@ def quiz():
     # Flaskのredirectでページ再ロードが走るため、前回のページロードから15秒以上経過していれば時間切れとみなす
     elapsed_time = int(time.time()) - session.get('last_question_time', 0)
     # GETリクエスト（ページ読み込み時）かつ、経過時間が制限時間（15秒）を超えている場合
+    # quiz_message が存在する（つまり、直前の回答の結果が表示されている）場合は、この時間切れ判定をスキップ
+    # これは、メッセージ表示時間中に誤って時間切れと判定されるのを防ぐため
     if elapsed_time > 15 and request.method == 'GET' and not session.get('quiz_message'): 
-        # session.get('quiz_message') が存在しない場合のみ時間切れを判定
-        # これにより、ユーザーが回答してメッセージが表示された直後に時間切れ判定されるのを防ぐ
-
         # 時間切れとして回答ログに追加
         session['answered_questions_log'].append({
             "id": question_data.get('id', 'IDなし'),
@@ -196,9 +195,9 @@ def quiz():
             "result": "時間切れ (不正解)"
         })
         session['current_question_index'] += 1
-        session['quiz_message'] = f"時間切れ！正解は '{question_data['answer'].strip()}' です。"
+        session['quiz_message'] = f"時間切れ。正解は '{question_data['answer'].strip()}' です。" # メッセージを「時間切れ。」に統一
         session['last_question_time'] = int(time.time()) # 次の問題のタイマー開始時間
-        return redirect(url_for('quiz')) # 次の問題へリダイレクト
+        return redirect(url_for('quiz')) # ★ ここに return を追加
 
     # 'start_time' をテンプレートに渡すことで、JavaScriptでタイマーを正確に開始できる
     return render_template('quiz.html', 
