@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>単語暗記クイズ</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 700px; margin: 50px auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #0056b3; margin-bottom: 20px; }
+        .question-id { font-size: 1.1em; color: #666; margin-bottom: 5px; }
+        .question-text { font-size: 1.8em; font-weight: bold; margin-bottom: 20px; line-height: 1.4; }
+        .countdown { font-size: 1.2em; color: blue; margin-bottom: 15px; }
+        input[type="text"] { width: calc(80% - 22px); padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 1.2em; text-align: center; }
+        .result-message { margin-top: 15px; font-weight: bold; font-size: 1.1em; }
+        .result-message.correct { color: green; }
+        .result-message.incorrect { color: red; }
+        .result-message.timeout { color: orange; }
+        .correct-answer-display { font-size: 1.1em; color: #555; margin-top: 5px; }
+        .button-group { margin-top: 25px; display: flex; justify-content: center; gap: 10px;}
+        button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s ease; }
+        button[type="submit"] { background-color: #007bff; color: white; }
+        button[type="submit"]:hover { background-color: #0056b3; }
+        .quit-button { background-color: #dc3545; color: white; }
+        .quit-button:hover { background-color: #c82333; }
+    </style>
+</head>
+<body data-start-time="{{ start_time }}">
+    <div class="container">
+        <h1>単語暗記クイズ</h1>
+        <p class="question-id">({{ question.id | default('IDなし') }})</p>
+        <p class="question-text">{{ question.question }}</p>
+
+        <p id="countdown" class="countdown">残り時間: 10秒</p>
+
+        <form id="quizForm" action="{{ url_for('check_answer') }}" method="post">
+            <input type="text" id="user_answer" name="user_answer" placeholder="ここに回答を入力" autofocus autocomplete="off">
+            <div class="button-group">
+                <button type="submit" id="submitButton">解答する</button>
+                <button type="button" class="quit-button" data-url="{{ url_for('confirm_quit') }}" onclick="location.href=this.dataset.url;">終了</button>
+            </div>
+        </form>
+
+        {% if message %}
+            <p class="result-message 
+                {% if '正解' in message %}correct
+                {% elif '不正解' in message %}incorrect
+                {% elif '時間切れ' in message %}timeout
+                {% endif %}">
+                {{ message }}
+            </p>
+        {% endif %}
+        
+        <script>
+            let countdownSeconds = 10;
+            const countdownElement = document.getElementById('countdown');
+            const submitButton = document.getElementById('submitButton');
+            const user_answer_input = document.getElementById('user_answer');
+
+            // ページロード時にカウントダウンを開始
+            // Flaskからのstart_timeは問題表示開始時のUNIXタイムスタンプ
+            const startTimeValue = parseInt(document.body.dataset.startTime, 10);
+            const initialRemaining = 10 - (Math.floor(Date.now() / 1000) - startTimeValue);
+            countdownSeconds = Math.max(0, initialRemaining);
+
+            function updateCountdown() {
+                if (countdownSeconds > 0) {
+                    countdownSeconds--;
+                    countdownElement.textContent = `残り時間: ${countdownSeconds}秒`;
+                    setTimeout(updateCountdown, 1000);
+                } else if (countdownSeconds === 0) {
+                    countdownElement.textContent = "時間切れ！";
+                    countdownElement.style.color = 'red';
+                    // 時間切れの場合、自動的にフォームを送信
+                    // ただし、ユーザーが入力中の場合もあるので、解答ボタンを無効化し、次の問題への遷移を促す
+                    submitButton.disabled = true;
+                    user_answer_input.disabled = true;
+                    
+                    // フォームを自動送信して時間切れとして処理させる
+                    // 実際には、サーバー側で時間切れを判断して次の問題にリダイレクトする
+                    // ここでは、ユーザーが解答を提出するのを待つか、次に進むボタンを押す形にする
+                    // Flask側でリダイレクトしているので、このJSは主に表示のため
+                }
+            }
+            // ページロードから少し遅延させてカウントダウン開始 (視覚的な調整)
+            setTimeout(updateCountdown, 100);
+
+            // Enterキーでフォームを送信
+            user_answer_input.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // デフォルトのEnter動作（改行）を抑制
+                    document.getElementById('quizForm').submit();
+                }
+            });
+
+            // メッセージがあれば自動的に消えるようにする（任意）
+            const messageElement = document.querySelector('.result-message');
+            if (messageElement) {
+                setTimeout(() => {
+                    messageElement.style.display = 'none';
+                }, 3000); // 3秒後に消える
+            }
+        </script>
+    </div>
+</body>
+</html>
