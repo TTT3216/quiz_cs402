@@ -13,7 +13,7 @@
         input[type="text"] { width: calc(100% - 40px); padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; }
         
         /* ボタンのスタイル統一 */
-        .button-group button, .single-button-form button { /* .single-button-form button は不要になるが、残しておく */
+        .button-group button { 
             padding: 12px 25px; /* パディングを統一 */
             border: none;
             border-radius: 5px;
@@ -28,8 +28,8 @@
         button.submit-button:hover { background-color: #0056b3; }
         button.quit-button { background-color: #dc3545; color: white; }
         button.quit-button:hover { background-color: #c82333; }
-        button.back-button { background-color: #6c757d; color: white; }
-        button.back-button:hover { background-color: #5a6268; }
+        button.next-button { background-color: #28a745; color: white; } /* 次の問題ボタンの色 */
+        button.next-button:hover { background-color: #218838; }
 
         .timer-container { margin-top: 15px; font-size: 1.2em; font-weight: bold; color: #0056b3; }
         .message { margin-top: 20px; font-size: 1.1em; font-weight: bold; }
@@ -38,7 +38,7 @@
         .timeout { color: orange; } /* 時間切れのメッセージの色 */
         .feedback { margin-top: 15px; font-size: 1.1em; }
 
-        /* 単一ボタン用フォームのスタイル - このセクションは将来的に削除しても良い */
+        /* 単一ボタン用フォームのスタイル */
         .single-button-form { margin-top: 20px; }
         .single-button-form button { margin: 0 auto; display: block; } /* 中央寄せ */
 
@@ -61,13 +61,19 @@
                 </div>
             </form>
 
-            {# メッセージは表示するが、「次の問題」ボタンは不要になる #}
+            {# 解答後のメッセージを表示する領域 #}
             {% if message %}
                 <p id="message-display" class="message 
                     {% if '正解' in message %}correct
                     {% elif '不正解' in message %}incorrect
                     {% elif '時間切れ' in message %}timeout{% endif %}">{{ message }}</p>
-                {# ここにあった「次の問題」ボタンのフォームは削除します #}
+                
+                {# 次の問題ボタンをここに配置 #}
+                <div id="nextQuestionButtonContainer" class="single-button-form">
+                    <form action="{{ url_for('quiz') }}" method="get">
+                        <button type="submit" class="next-button">次の問題</button>
+                    </form>
+                </div>
             {% endif %}
 
         {% else %}
@@ -95,21 +101,26 @@
             const inputField = document.querySelector('input[name="user_answer"]');
             const submitButton = document.querySelector('button[type="submit"]');
             const quitButton = document.querySelector('.button-group button.quit-button');
-            const messageElement = document.getElementById('message-display'); // メッセージ要素を取得
+            const messageElement = document.getElementById('message-display'); 
+            const nextButtonContainer = document.getElementById('nextQuestionButtonContainer'); // 新しく追加
 
             // 全ての要素を有効化
             if (inputField) inputField.disabled = false;
             if (submitButton) submitButton.disabled = false;
             if (quitButton) quitButton.disabled = false;
 
+            // メッセージ要素があれば非表示に
+            if (messageElement) {
+                messageElement.style.display = 'none';
+            }
+            // 次の問題ボタンコンテナがあれば非表示に
+            if (nextButtonContainer) {
+                nextButtonContainer.style.display = 'none';
+            }
+
             if (inputField) {
                 inputField.value = '';
-                inputField.focus(); // JavaScriptで明示的にフォーカスを設定
-            }
-            // メッセージ要素があれば非表示にするか削除する
-            if (messageElement) {
-                messageElement.style.display = 'none'; // メッセージを非表示にする
-                // messageElement.remove(); // もし完全にHTMLから削除したいならこちら
+                inputField.focus(); 
             }
 
             startTimer();
@@ -163,12 +174,13 @@
         // ページがロードされたときの初期処理
         window.onload = function() {
             const questionElement = document.querySelector('h2'); // 質問要素
-            const messageElement = document.getElementById('message-display'); // メッセージ要素をIDで取得
+            const messageElement = document.getElementById('message-display'); // メッセージ要素
+            const nextButtonContainer = document.getElementById('nextQuestionButtonContainer'); // 次の問題ボタンのコンテナ
 
             // 質問要素がある場合（クイズ画面）
             if (questionElement) {
                 // メッセージがある場合（回答チェック後のリダイレクト時）
-                if (messageElement && messageElement.style.display !== 'none') {
+                if (messageElement && messageElement.textContent.trim() !== '') { // メッセージが表示されている場合
                     // 入力フィールドとボタンを一時的に無効化
                     const inputField = document.querySelector('input[name="user_answer"]');
                     const submitButton = document.querySelector('button[type="submit"]');
@@ -177,10 +189,16 @@
                     if (submitButton) submitButton.disabled = true;
                     if (quitButton) quitButton.disabled = true;
 
-                    // メッセージ表示後、自動的に次の問題へ遷移
+                    // 次の問題ボタンを表示
+                    if (nextButtonContainer) {
+                        nextButtonContainer.style.display = 'block';
+                    }
+                    
+                    // 自動遷移は引き続き行う
                     setTimeout(() => {
                         window.location.href = "{{ url_for('quiz') }}";
                     }, messageDisplayDuration);
+
                 } else {
                     // 新しい問題が表示された状態（メッセージがない状態）
                     initializeQuizState();
@@ -197,6 +215,7 @@
                 if (inputField) inputField.disabled = true;
                 if (submitButton) submitButton.disabled = true;
                 if (quitButton) quitButton.disabled = true;
+                if (nextButtonContainer) nextButtonContainer.style.display = 'none'; // 問題がない場合はボタンも非表示
             }
         };
     </script>
